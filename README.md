@@ -35,3 +35,6 @@ Flask backend and web dashboard are fully implemented.
 SQLite integration and data logging are complete.
 Physical sensor integration and camera setup are in progress.
 Machine learning model development and camera-based feed analysis are planned for the next phase.
+
+
+![image alt](https://github.com/manojkandula2303/Smart-Waste-Management/blob/d34e715b49c44a7d69aa6632e62daff7e0f6af55/image.png)
