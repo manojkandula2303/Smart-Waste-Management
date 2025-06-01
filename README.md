@@ -38,3 +38,5 @@ Machine learning model development and camera-based feed analysis are planned fo
 
 
 ![image alt](https://github.com/manojkandula2303/Smart-Waste-Management/blob/d34e715b49c44a7d69aa6632e62daff7e0f6af55/image.png)
+
+![image alt](https://github.com/manojkandula2303/Smart-Waste-Management/blob/d45e9453a6fdeb1b7502dabed4966e3347549346/1111.png)
