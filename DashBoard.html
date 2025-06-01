@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biogas Production Monitor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        :root {
+    --primary: #2c3e50;
+    --primary-light: #34495e;
+    --secondary: #3498db;
+    --secondary-light: #2980b9;
+    --success: #2ecc71;
+    --success-light: #27ae60;
+    --warning: #f39c12;
+    --warning-light: #f1c40f;
+    --danger: #e74c3c;
+    --danger-light: #c0392b;
+    --gray: #7f8c8d;
+    --light: #ecf0f1;
+    --white: #ffffff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f5f7fa;
+    color: var(--primary);
+}
+
+.dashboard {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 30px 20px;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    color: var(--primary);
+    margin-bottom: 5px;
+    font-size: 2.2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-icon {
+    color: var(--success);
+    font-size: 1.8rem;
+}
+
+.subtitle {
+    color: var(--gray);
+    font-size: 1.1rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+.main-content {
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 20px;
+}
+
+.sidebar {
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 20px;
+}
+
+.current-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5px;
+    height: 100%;
+}
+
+.methane::before { background: var(--danger); }
+.temperature::before { background: var(--warning); }
+.ph::before { background: var(--success); }
+.heater::before { background: var(--secondary); }
+
+.stat-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.stat-card h2 {
+    font-size: 1.1rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+    opacity: 0.8;
+}
+
+.methane .stat-icon { color: var(--danger); }
+.temperature .stat-icon { color: var(--warning); }
+.ph .stat-icon { color: var(--success); }
+.heater .stat-icon { color: var(--secondary); }
+
+.stat-card .value {
+    font-size: 2.8rem;
+    font-weight: bold;
+    margin: 10px 0;
+    font-family: 'Courier New', monospace;
+}
+
+.methane .value { color: var(--danger); }
+.temperature .value { color: var(--warning); }
+.ph .value { color: var(--success); }
+.heater .value.on { color: var(--danger); }
+.heater .value.off { color: var(--success); }
+
+.unit {
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.status {
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    display: inline-block;
+    margin-top: auto;
+    font-weight: 500;
+    width: fit-content;
+}
+
+.normal { background: #e8f5e9; color: #2e7d32; }
+.warning { background: #fff8e1; color: #f57f17; }
+.danger { background: #ffebee; color: #c62828; }
+
+.chart-container {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    height: 400px;
+    position: relative;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.chart-title {
+    color: var(--primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.time-range-selector {
+    display: flex;
+    gap: 10px;
+}
+
+.time-range-btn {
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: var(--light);
+    border: none;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.time-range-btn:hover {
+    background: var(--secondary-light);
+    color: white;
+}
+
+.time-range-btn.active {
+    background: var(--secondary);
+    color: white;
+}
+
+.last-update {
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-top: 10px;
+}
+
+.alert-panel {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.panel-title {
+    color: var(--primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.alert-count {
+    background: var(--danger);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.alert-container {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* Custom scrollbar */
+.alert-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.alert-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.alert-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+.alert-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.alert-item {
+    padding: 12px;
+    border-left: 4px solid;
+    margin-bottom: 10px;
+    background: #f9f9f9;
+    border-radius: 0 8px 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+}
+
+.alert-item:hover {
+    transform: translateX(3px);
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+}
+
+.alert-item.danger { 
+    border-color: var(--danger);
+    background: rgba(231, 76, 60, 0.08);
+}
+
+.alert-item.warning { 
+    border-color: var(--warning);
+    background: rgba(243, 156, 18, 0.08);
+}
+
+.alert-icon {
+    font-size: 1.2rem;
+}
+
+.alert-item.danger .alert-icon {
+    color: var(--danger);
+}
+
+.alert-item.warning .alert-icon {
+    color: var(--warning);
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-time {
+    font-size: 0.8rem;
+    color: var(--gray);
+    margin-bottom: 3px;
+}
+
+.alert-message {
+    font-size: 0.95rem;
+}
+
+.no-alerts {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--gray);
+    text-align: center;
+}
+
+.no-alerts-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.no-alerts-text {
+    font-size: 1rem;
+}
+
+.system-controls {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.control-title {
+    color: var(--primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--primary-light);
+}
+
+.control-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border 0.2s ease;
+}
+
+.control-input:focus {
+    outline: none;
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.control-btn {
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: none;
+    background: var(--secondary);
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-btn:hover {
+    background: var(--secondary-light);
+    transform: translateY(-2px);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+}
+
+.control-btn.danger {
+    background: var(--danger);
+}
+
+.control-btn.danger:hover {
+    background: var(--danger-light);
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+}
+
+.data-export {
+    margin-top: 20px;
+}
+
+.export-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    background: var(--success);
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.export-btn:hover {
+    background: var(--success-light);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .current-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .chart-container {
+        height: 350px;
+    }
+    
+    header {
+        padding: 20px 15px;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .current-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .time-range-selector {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    
+    .stat-card .value {
+        font-size: 2.5rem;
+    }
+}
+
+/* Animation for critical alerts */
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+}
+
+.critical-alert {
+    animation: pulse 1.5s infinite;
+}
+
+.connection-status {
+    margin-top: 10px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.connection-status.connected {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.connection-status.disconnected {
+    background: #ffebee;
+    color: #c62828;
+}
+
+/* Dark mode styles */
+.dark-mode {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+
+.dark-mode .dashboard {
+    background-color: #1a1a1a;
+}
+
+.dark-mode header,
+.dark-mode .stat-card,
+.dark-mode .chart-container,
+.dark-mode .alert-panel,
+.dark-mode .system-controls {
+    background-color: #2d2d2d;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.dark-mode .time-range-btn {
+    background: #444;
+    color: #ddd;
+}
+
+.dark-mode .time-range-btn.active {
+    background: var(--secondary);
+}
+
+.dark-mode .control-input {
+    background-color: #333;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+.dark-mode .alert-item {
+    background: #333;
+}
+
+.dark-mode-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.dark-mode-toggle:hover {
+    background-color: rgba(0,0,0,0.1);
+}
+
+.dark-mode .dark-mode-toggle:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
+/* Help modal */
+.help-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.help-content {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.dark-mode .help-content {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+.help-content h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--primary);
+}
+
+.dark-mode .help-content h2 {
+    color: var(--secondary);
+}
+
+.help-content ul {
+    margin-bottom: 20px;
+    padding-left: 20px;
+}
+
+.help-content li {
+    margin-bottom: 8px;
+}
+
+.close-help {
+    padding: 8px 16px;
+    background: var(--secondary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.close-help:hover {
+    background: var(--secondary-light);
+}
+
+/* Alert search */
+.alert-search-container {
+    margin-bottom: 15px;
+}
+
+.alert-search {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+.dark-mode .alert-search {
+    background-color: #333;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+.no-results {
+    text-align: center;
+    padding: 20px;
+    color: var(--gray);
+}
+
+/* Mobile optimizations */
+.mobile-view .dashboard-grid {
+    grid-template-columns: 1fr;
+}
+
+.mobile-view .current-stats {
+    grid-template-columns: 1fr;
+}
+
+.mobile-view .stat-card {
+    margin-bottom: 10px;
+}
+
+/* Invalid input styling */
+.control-input.invalid {
+    border-color: var(--danger);
+    background-color: rgba(231, 76, 60, 0.05);
+}
+
+.dark-mode .control-input.invalid {
+    background-color: rgba(231, 76, 60, 0.15);
+}
+
+/* Disabled controls */
+button:disabled, 
+input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>
+                <i class="fas fa-fire header-icon"></i>
+                Biogas Production Monitor
+            </h1>
+            <p class="subtitle">Real-time tracking and control of biogas production parameters including methane concentration, temperature, and pH levels</p>
+            <div class="connection-status disconnected" id="connection-status">Disconnected</div>
+        </header>
+        
+        <div class="dashboard-grid">
+            <div class="main-content">
+                <div class="current-stats">
+                    <div class="stat-card methane">
+                        <div class="stat-card-header">
+                            <h2>Methane Concentration</h2>
+                            <i class="fas fa-fire-flame-curved stat-icon"></i>
+                        </div>
+                        <div class="value" id="methane-value">—</div>
+                        <div class="unit">parts per million (ppm)</div>
+                        <div class="status normal" id="methane-status">Waiting for data...</div>
+                    </div>
+                    
+                    <div class="stat-card temperature">
+                        <div class="stat-card-header">
+                            <h2>Temperature</h2>
+                            <i class="fas fa-temperature-high stat-icon"></i>
+                        </div>
+                        <div class="value" id="temperature-value">—</div>
+                        <div class="unit">degrees Celsius (°C)</div>
+                        <div class="status normal" id="temperature-status">Waiting for data...</div>
+                    </div>
+                    
+                    <div class="stat-card ph">
+                        <div class="stat-card-header">
+                            <h2>pH Level</h2>
+                            <i class="fas fa-vial stat-icon"></i>
+                        </div>
+                        <div class="value" id="ph-value">—</div>
+                        <div class="status normal" id="ph-status">Waiting for data...</div>
+                    </div>
+                    
+                    <div class="stat-card heater">
+                        <div class="stat-card-header">
+                            <h2>Heater Status</h2>
+                            <i class="fas fa-thermometer-half stat-icon"></i>
+                        </div>
+                        <div class="value off" id="heater-status">—</div>
+                        <div class="last-update" id="last-update">Waiting for connection...</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">Sensor Data Trends</div>
+                        <div class="time-range-selector">
+                            <button class="time-range-btn active" data-range="1h">1 Hour</button>
+                            <button class="time-range-btn" data-range="6h">6 Hours</button>
+                            <button class="time-range-btn" data-range="12h">12 Hours</button>
+                            <button class="time-range-btn" data-range="24h">24 Hours</button>
+                        </div>
+                    </div>
+                    <canvas id="sensor-chart"></canvas>
+                    <div class="last-update">Data updates every 5 seconds</div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="alert-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">System Alerts</div>
+                        <div class="alert-count" id="alert-count">0</div>
+                    </div>
+                    <!-- Add this inside the alert-panel, just below the panel-header -->
+                    <div class="alert-search-container">
+                        <input type="text" id="alert-search" placeholder="Search alerts..." class="alert-search">
+                    </div>
+                    <div class="alert-container" id="alert-container">
+                        <div class="no-alerts">
+                            <i class="fas fa-check-circle no-alerts-icon"></i>
+                            <div class="no-alerts-text">No active alerts</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="system-controls">
+                    <div class="control-title">System Controls</div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Temperature Threshold (°C)</label>
+                        <input type="number" class="control-input" id="temp-threshold" placeholder="e.g., 35">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Methane Threshold (ppm)</label>
+                        <input type="number" class="control-input" id="methane-threshold" placeholder="e.g., 400">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">pH Range</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" class="control-input" id="ph-min" placeholder="Min (e.g., 6.5)" step="0.1">
+                            <input type="number" class="control-input" id="ph-max" placeholder="Max (e.g., 7.5)" step="0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button class="control-btn" id="save-settings">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                        <button class="control-btn danger" id="emergency-stop">
+                            <i class="fas fa-power-off"></i> Emergency Stop
+                        </button>
+                    </div>
+                    
+                    <div class="data-export">
+                        <button class="export-btn" id="export-data">
+                            <i class="fas fa-file-export"></i> Export Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+const methaneValue = document.getElementById('methane-value');
+const methaneStatus = document.getElementById('methane-status');
+const temperatureValue = document.getElementById('temperature-value');
+const temperatureStatus = document.getElementById('temperature-status');
+const phValue = document.getElementById('ph-value');
+const phStatus = document.getElementById('ph-status');
+const heaterStatus = document.getElementById('heater-status');
+const lastUpdate = document.getElementById('last-update');
+const alertContainer = document.getElementById('alert-container');
+const alertCount = document.getElementById('alert-count');
+const connectionStatus = document.getElementById('connection-status');
+
+// Control elements
+const tempThresholdInput = document.getElementById('temp-threshold');
+const methaneThresholdInput = document.getElementById('methane-threshold');
+const phMinInput = document.getElementById('ph-min');
+const phMaxInput = document.getElementById('ph-max');
+const saveSettingsBtn = document.getElementById('save-settings');
+const emergencyStopBtn = document.getElementById('emergency-stop');
+const exportDataBtn = document.getElementById('export-data');
+const timeRangeBtns = document.querySelectorAll('.time-range-btn');
+
+// Chart setup
+const ctx = document.getElementById('sensor-chart').getContext('2d');
+let sensorChart;
+
+// Data storage
+const chartData = {
+    labels: [],
+    methane: [],
+    temperature: [],
+    ph: [],
+    timestamps: []
+};
+
+// Threshold settings (default values)
+let settings = {
+    tempThreshold: 35,
+    methaneThreshold: 400,
+    phMin: 6.5,
+    phMax: 7.5
+};
+
+// Initialize Chart
+function initChart() {
+    sensorChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [
+                {
+                    label: 'Methane (ppm)',
+                    data: chartData.methane,
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.2,
+                    yAxisID: 'y',
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    fill: true
+                },
+                {
+                    label: 'Temperature (°C)',
+                    data: chartData.temperature,
+                    borderColor: '#f39c12',
+                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.2,
+                    yAxisID: 'y1',
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    fill: true
+                },
+                {
+                    label: 'pH Level',
+                    data: chartData.ph,
+                    borderColor: '#2ecc71',
+                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.2,
+                    yAxisID: 'y2',
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'minute',
+                        displayFormats: {
+                            minute: 'HH:mm'
+                        },
+                        tooltipFormat: 'MMM D, HH:mm'
+                    },
+                    grid: {
+                        display: true,
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Methane (ppm)'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    min: 0
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Temperature (°C)'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                    min: 0
+                },
+                y2: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    offset: true,
+                    title: {
+                        display: true,
+                        text: 'pH Level'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                    min: 0,
+                    max: 14,
+                    ticks: {
+                        stepSize: 2
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleFont: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        size: 12
+                    },
+                    padding: 12,
+                    cornerRadius: 6,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y.toFixed(2);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+}
+
+// Update dashboard with new data
+function updateDashboard(data) {
+    // Update values
+    methaneValue.textContent = data.methane.toFixed(1);
+    temperatureValue.textContent = data.temperature.toFixed(1);
+    phValue.textContent = data.ph.toFixed(1);
+    
+    // Update heater status
+    heaterStatus.textContent = data.heat_status === 'ON' ? 'ON' : 'OFF';
+    heaterStatus.className = 'value ' + (data.heat_status === 'ON' ? 'on' : 'off');
+    
+    // Update status indicators
+    updateStatusIndicators(data);
+    
+    // Update last update time
+    const now = new Date();
+    lastUpdate.textContent = `Last updated: ${now.toLocaleTimeString()}`;
+    
+    // Update chart data
+    const timestamp = now.getTime();
+    const timeLabel = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    chartData.labels.push(timeLabel);
+    chartData.methane.push(data.methane);
+    chartData.temperature.push(data.temperature);
+    chartData.ph.push(data.ph);
+    chartData.timestamps.push(timestamp);
+    
+    // Keep only the last 100 readings
+    if (chartData.labels.length > 100) {
+        chartData.labels.shift();
+        chartData.methane.shift();
+        chartData.temperature.shift();
+        chartData.ph.shift();
+        chartData.timestamps.shift();
+    }
+    
+    // Update chart time scale based on selected range
+    updateChartTimeScale();
+    
+    sensorChart.update();
+}
+
+// Update status indicators and alerts
+function updateStatusIndicators(data) {
+    let hasCriticalAlert = false;
+    
+    // Methane status
+    if (data.methane > settings.methaneThreshold) {
+        methaneStatus.textContent = 'DANGER: High Level!';
+        methaneStatus.className = 'status danger';
+        addAlert(`High methane concentration detected (${data.methane.toFixed(1)} ppm)!`, 'danger');
+        hasCriticalAlert = true;
+    } else if (data.methane > settings.methaneThreshold * 0.75) {
+        methaneStatus.textContent = 'WARNING: Elevated Level';
+        methaneStatus.className = 'status warning';
+        addAlert(`Elevated methane concentration (${data.methane.toFixed(1)} ppm)`, 'warning');
+    } else {
+        methaneStatus.textContent = 'Normal';
+        methaneStatus.className = 'status normal';
+    }
+    
+    // Temperature status
+    if (data.temperature < 25) {
+        temperatureStatus.textContent = 'Heating Required';
+        temperatureStatus.className = 'status warning';
+        addAlert(`Low temperature (${data.temperature.toFixed(1)}°C) - heating recommended`, 'warning');
+    } else if (data.temperature > settings.tempThreshold) {
+        temperatureStatus.textContent = 'Too Hot!';
+        temperatureStatus.className = 'status danger';
+        addAlert(`Temperature too high (${data.temperature.toFixed(1)}°C)!`, 'danger');
+        hasCriticalAlert = true;
+    } else {
+        temperatureStatus.textContent = 'Optimal';
+        temperatureStatus.className = 'status normal';
+    }
+    
+    // pH status
+    if (data.ph < settings.phMin) {
+        phStatus.textContent = 'Too Acidic!';
+        phStatus.className = 'status danger';
+        addAlert(`pH level too acidic (${data.ph.toFixed(1)})!`, 'danger');
+        hasCriticalAlert = true;
+    } else if (data.ph < settings.phMin * 1.05) {
+        phStatus.textContent = 'Slightly Acidic';
+        phStatus.className = 'status warning';
+        addAlert(`pH slightly acidic (${data.ph.toFixed(1)})`, 'warning');
+    } else if (data.ph > settings.phMax) {
+        phStatus.textContent = 'Too Alkaline!';
+        phStatus.className = 'status danger';
+        addAlert(`pH level too alkaline (${data.ph.toFixed(1)})!`, 'danger');
+        hasCriticalAlert = true;
+    } else if (data.ph > settings.phMax * 0.95) {
+        phStatus.textContent = 'Slightly Alkaline';
+        phStatus.className = 'status warning';
+        addAlert(`pH slightly alkaline (${data.ph.toFixed(1)})`, 'warning');
+    } else {
+        phStatus.textContent = 'Optimal';
+        phStatus.className = 'status normal';
+    }
+    
+    // Add pulse animation for critical alerts
+    if (hasCriticalAlert) {
+        document.querySelector('header').classList.add('critical-alert');
+    } else {
+        document.querySelector('header').classList.remove('critical-alert');
+    }
+}
+
+// Add alert to the panel
+function addAlert(message, type) {
+    // Remove "no alerts" message if it exists
+    const noAlerts = alertContainer.querySelector('.no-alerts');
+    if (noAlerts) {
+        noAlerts.remove();
+    }
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert-item ${type}`;
+    
+    const timestamp = new Date().toLocaleTimeString();
+    alertDiv.innerHTML = `
+        <i class="fas fa-exclamation-triangle alert-icon"></i>
+        <div class="alert-content">
+            <div class="alert-time">${timestamp}</div>
+            <div class="alert-message">${message}</div>
+        </div>
+    `;
+    
+    alertContainer.prepend(alertDiv);
+    
+    // Update alert count
+    updateAlertCount();
+    
+    // Auto-remove after 1 hour
+    setTimeout(() => {
+        alertDiv.remove();
+        updateAlertCount();
+        
+        // Show "no alerts" if empty
+        if (alertContainer.children.length === 0) {
+            showNoAlerts();
+        }
+    }, 3600000);
+}
+
+// Update alert count display
+function updateAlertCount() {
+    const count = alertContainer.querySelectorAll('.alert-item').length;
+    alertCount.textContent = count;
+    
+    if (count > 0) {
+        alertCount.style.display = 'inline-block';
+    } else {
+        alertCount.style.display = 'none';
+    }
+}
+
+// Show "no alerts" message
+function showNoAlerts() {
+    alertContainer.innerHTML = `
+        <div class="no-alerts">
+            <i class="fas fa-check-circle no-alerts-icon"></i>
+            <div class="no-alerts-text">No active alerts</div>
+        </div>
+    `;
+    alertCount.textContent = '0';
+    alertCount.style.display = 'none';
+}
+
+// Update chart time scale based on selected range
+function updateChartTimeScale() {
+    const activeBtn = document.querySelector('.time-range-btn.active');
+    if (!activeBtn) return;
+    
+    const range = activeBtn.dataset.range;
+    let hours;
+    
+    switch(range) {
+        case '1h': hours = 1; break;
+        case '6h': hours = 6; break;
+        case '12h': hours = 12; break;
+        case '24h': hours = 24; break;
+        default: hours = 6;
+    }
+    
+    const now = Date.now();
+    const minTime = now - (hours * 60 * 60 * 1000);
+    
+    sensorChart.options.scales.x.min = minTime;
+    sensorChart.options.scales.x.time.unit = hours <= 1 ? 'minute' : 'hour';
+    
+    sensorChart.update();
+}
+
+// Fetch data from server
+async function fetchData() {
+    try {
+        // Attempt to connect to the actual sensor API
+        const response = await fetch('http://your-server-ip:5000/api/latest');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        updateDashboard(data);
+        
+        // Update connection status
+        updateConnectionStatus(true);
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        addAlert('Connection error: Unable to fetch sensor data', 'danger');
+        updateConnectionStatus(false);
+    }
+}
+
+// Update connection status indicator
+function updateConnectionStatus(isConnected) {
+    const statusElement = document.getElementById('connection-status');
+    
+    if (isConnected) {
+        statusElement.textContent = 'Connected';
+        statusElement.className = 'connection-status connected';
+        
+        // Enable controls when connected
+        document.querySelectorAll('.control-input, .control-btn, .export-btn, .time-range-btn').forEach(el => {
+            el.disabled = false;
+        });
+    } else {
+        statusElement.textContent = 'Disconnected';
+        statusElement.className = 'connection-status disconnected';
+        
+        // Disable controls when disconnected
+        document.querySelectorAll('.control-input, .control-btn, .export-btn, .time-range-btn').forEach(el => {
+            el.disabled = true;
+        });
+        
+        // Keep emergency stop enabled
+        document.getElementById('emergency-stop').disabled = false;
+    }
+}
+
+// Remove the generateDemoData function as we're only using real sensor data
+
+// Initialize and start data refresh
+function init() {
+    initChart();
+    loadSettings();
+    
+    // Show waiting for connection message
+    methaneValue.textContent = '—';
+    temperatureValue.textContent = '—';
+    phValue.textContent = '—';
+    heaterStatus.textContent = '—';
+    methaneStatus.textContent = 'Waiting for connection...';
+    temperatureStatus.textContent = 'Waiting for connection...';
+    phStatus.textContent = 'Waiting for connection...';
+    lastUpdate.textContent = 'Waiting for connection...';
+    
+    // Initial connection status is disconnected
+    updateConnectionStatus(false);
+    
+    // Add keyboard shortcuts
+    setupKeyboardShortcuts();
+    
+    // Add responsive layout adjustments
+    setupResponsiveLayout();
+    
+    // Add dark mode toggle
+    setupDarkMode();
+    
+    // Initial fetch attempt
+    fetchData();
+    
+    // Refresh data every 5 seconds
+    setInterval(fetchData, 5000);
+    
+    // Set up event listeners
+    timeRangeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            timeRangeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateChartTimeScale();
+        });
+    });
+    
+    saveSettingsBtn.addEventListener('click', saveSettings);
+    exportDataBtn.addEventListener('click', exportData);
+    
+    emergencyStopBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to initiate emergency shutdown?')) {
+            // In a real app, this would call your API
+            fetch('/api/emergency', { method: 'POST' })
+                .then(() => addAlert('EMERGENCY SHUTDOWN INITIATED!', 'danger'))
+                .catch(err => {
+                    console.error('Error during emergency shutdown:', err);
+                    addAlert('EMERGENCY SHUTDOWN FAILED! Check manual override.', 'danger');
+                });
+        }
+    });
+    
+    // Add search functionality for alerts
+    document.getElementById('alert-search').addEventListener('input', filterAlerts);
+    
+    // Add settings validation
+    setupSettingsValidation();
+}
+
+// Setup keyboard shortcuts for common actions
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+S to save settings
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            if (!saveSettingsBtn.disabled) {
+                saveSettings();
+            }
+        }
+        
+        // Ctrl+E to export data
+        if (e.ctrlKey && e.key === 'e') {
+            e.preventDefault();
+            if (!exportDataBtn.disabled) {
+                exportData();
+            }
+        }
+        
+        // Esc to clear all alerts
+        if (e.key === 'Escape') {
+            clearAllAlerts();
+        }
+        
+        // F1 to show help modal
+        if (e.key === 'F1') {
+            e.preventDefault();
+            showHelpModal();
+        }
+    });
+}
+
+// Clear all alerts
+function clearAllAlerts() {
+    if (confirm('Clear all alerts?')) {
+        alertContainer.querySelectorAll('.alert-item').forEach(alert => {
+            alert.remove();
+        });
+        updateAlertCount();
+        showNoAlerts();
+    }
+}
+
+// Show help modal with keyboard shortcuts and tips
+function showHelpModal() {
+    const modal = document.createElement('div');
+    modal.className = 'help-modal';
+    modal.innerHTML = `
+        <div class="help-content">
+            <h2>Keyboard Shortcuts</h2>
+            <ul>
+                <li><strong>Ctrl+S</strong>: Save settings</li>
+                <li><strong>Ctrl+E</strong>: Export data</li>
+                <li><strong>Esc</strong>: Clear all alerts</li>
+                <li><strong>F1</strong>: Show this help</li>
+            </ul>
+            <h2>Tips</h2>
+            <ul>
+                <li>Click on chart points for detailed readings</li>
+                <li>Use the search box to filter alerts</li>
+                <li>Toggle dark mode for low-light environments</li>
+            </ul>
+            <button class="close-help">Close</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.querySelector('.close-help').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+// Setup responsive layout adjustments
+function setupResponsiveLayout() {
+    const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            const width = entry.contentRect.width;
+            
+            if (width < 768) {
+                document.body.classList.add('mobile-view');
+                
+                // Adjust chart options for better mobile viewing
+                if (sensorChart) {
+                    sensorChart.options.plugins.legend.position = 'bottom';
+                    sensorChart.update();
+                }
+            } else {
+                document.body.classList.remove('mobile-view');
+                
+                // Restore chart options
+                if (sensorChart) {
+                    sensorChart.options.plugins.legend.position = 'top';
+                    sensorChart.update();
+                }
+            }
+        }
+    });
+    
+    resizeObserver.observe(document.body);
+}
+
+// Setup dark mode toggle
+function setupDarkMode() {
+    // Create dark mode toggle button
+    const darkModeBtn = document.createElement('button');
+    darkModeBtn.className = 'dark-mode-toggle';
+    darkModeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+    darkModeBtn.title = 'Toggle Dark Mode';
+    
+    document.querySelector('header').appendChild(darkModeBtn);
+    
+    // Check for saved preference
+    const darkModeEnabled = localStorage.getItem('darkMode') === 'true';
+    if (darkModeEnabled) {
+        document.body.classList.add('dark-mode');
+        darkModeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+        updateChartForDarkMode(true);
+    }
+    
+    // Toggle dark mode
+    darkModeBtn.addEventListener('click', () => {
+        const isDarkMode = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', isDarkMode);
+        
+        // Update icon
+        darkModeBtn.innerHTML = isDarkMode ? 
+            '<i class="fas fa-sun"></i>' : 
+            '<i class="fas fa-moon"></i>';
+        
+        // Update chart colors
+        updateChartForDarkMode(isDarkMode);
+    });
+}
+
+// Update chart colors for dark mode
+function updateChartForDarkMode(isDarkMode) {
+    if (!sensorChart) return;
+    
+    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+    const fontColor = isDarkMode ? '#e0e0e0' : '#666';
+    
+    sensorChart.options.scales.x.grid.color = gridColor;
+    sensorChart.options.scales.y.grid.color = gridColor;
+    
+    sensorChart.options.scales.x.ticks.color = fontColor;
+    sensorChart.options.scales.y.ticks.color = fontColor;
+    sensorChart.options.scales.y1.ticks.color = fontColor;
+    sensorChart.options.scales.y2.ticks.color = fontColor;
+    
+    sensorChart.options.scales.x.title.color = fontColor;
+    sensorChart.options.scales.y.title.color = fontColor;
+    sensorChart.options.scales.y1.title.color = fontColor;
+    sensorChart.options.scales.y2.title.color = fontColor;
+    
+    sensorChart.options.plugins.legend.labels.color = fontColor;
+    
+    sensorChart.update();
+}
+
+// Filter alerts based on search input
+function filterAlerts() {
+    const searchTerm = document.getElementById('alert-search').value.toLowerCase();
+    const alerts = alertContainer.querySelectorAll('.alert-item');
+    
+    if (alerts.length === 0) return;
+    
+    let hasVisibleAlerts = false;
+    
+    alerts.forEach(alert => {
+        const message = alert.querySelector('.alert-message').textContent.toLowerCase();
+        if (message.includes(searchTerm)) {
+            alert.style.display = 'flex';
+            hasVisibleAlerts = true;
+        } else {
+            alert.style.display = 'none';
+        }
+    });
+    
+    // Show "no results" message if no matching alerts
+    const noResults = alertContainer.querySelector('.no-results');
+    if (!hasVisibleAlerts && searchTerm) {
+        if (!noResults) {
+            const noResultsDiv = document.createElement('div');
+            noResultsDiv.className = 'no-results';
+            noResultsDiv.innerHTML = 'No matching alerts found';
+            alertContainer.appendChild(noResultsDiv);
+        }
+    } else if (noResults) {
+        noResults.remove();
+    }
+}
+
+// Setup settings validation
+function setupSettingsValidation() {
+    // Validate temperature threshold
+    tempThresholdInput.addEventListener('input', () => {
+        const value = parseFloat(tempThresholdInput.value);
+        if (value < 20 || value > 60) {
+            tempThresholdInput.classList.add('invalid');
+        } else {
+            tempThresholdInput.classList.remove('invalid');
+        }
+    });
+    
+    // Validate methane threshold
+    methaneThresholdInput.addEventListener('input', () => {
+        const value = parseFloat(methaneThresholdInput.value);
+        if (value < 100 || value > 1000) {
+            methaneThresholdInput.classList.add('invalid');
+        } else {
+            methaneThresholdInput.classList.remove('invalid');
+        }
+    });
+    
+    // Validate pH range
+    phMinInput.addEventListener('input', validatePhRange);
+    phMaxInput.addEventListener('input', validatePhRange);
+}
+
+function validatePhRange() {
+    const min = parseFloat(phMinInput.value);
+    const max = parseFloat(phMaxInput.value);
+    
+    if (min < 0 || min > 14 || isNaN(min)) {
+        phMinInput.classList.add('invalid');
+    } else {
+        phMinInput.classList.remove('invalid');
+    }
+    
+    if (max < 0 || max > 14 || isNaN(max)) {
+        phMaxInput.classList.add('invalid');
+    } else {
+        phMaxInput.classList.remove('invalid');
+    }
+    
+    if (min >= max && !isNaN(min) && !isNaN(max)) {
+        phMinInput.classList.add('invalid');
+        phMaxInput.classList.add('invalid');
+    }
+}
+
+// Start the application
+window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
