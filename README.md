@@ -37,7 +37,6 @@ Physical sensor integration and camera setup are in progress.
 Machine learning model development and camera-based feed analysis are planned for the next phase.
 
 
-![image alt](https://github.com/manojkandula2303/Smart-Waste-Management/blob/d45e9453a6fdeb1b7502dabed4966e3347549346/1111.png)
 
 
 
